@@ -1,4 +1,4 @@
-From 0ff0fcc356722ec20778632a874e8ada0d934335 Mon Sep 17 00:00:00 2001
+From 666a1bee1fb9257adfd26f7a82b41ab3ca62cd0b Mon Sep 17 00:00:00 2001
 From: Phoenix616 <mail@moep.tv>
 Date: Mon, 13 Jan 2020 15:40:32 +0100
 Subject: [PATCH] Seed based feature search
@@ -15,10 +15,10 @@ changes but this should usually not happen. A config option to disable
 this improvement is added though in case that should ever be necessary.
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index 3b8488d3ff..bce502181f 100644
+index fca4b6e20a..ade7af40ef 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -359,6 +359,12 @@ public class PaperWorldConfig {
+@@ -357,6 +357,12 @@ public class PaperWorldConfig {
          }
      }
  
@@ -109,5 +109,5 @@ index 228e6e9ab9..f1d072a39c 100644
      }
  }
 -- 
-2.26.2
+2.26.2.windows.1
 

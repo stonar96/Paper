@@ -1,14 +1,14 @@
-From 5fed7f9ec8c8aa7a94b1a4e595918b4f8013a071 Mon Sep 17 00:00:00 2001
+From fd1239e88000fc52e7067c831458c2de6c6bfbdd Mon Sep 17 00:00:00 2001
 From: Phoenix616 <mail@moep.tv>
 Date: Sun, 15 Sep 2019 11:32:32 -0500
 Subject: [PATCH] Fix zero-tick instant grow farms MC-113809
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index e790326c9c..c37a0f035d 100644
+index 928fefb419..4421085556 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -566,6 +566,11 @@ public class PaperWorldConfig {
+@@ -554,6 +554,11 @@ public class PaperWorldConfig {
          disableRelativeProjectileVelocity = getBoolean("game-mechanics.disable-relative-projectile-velocity", false);
      }
  
@@ -95,5 +95,5 @@ index fd8ca2a510..06d693ca2c 100644
  
                          Fluid fluid = iblockdata.getFluid();
 -- 
-2.26.2
+2.26.2.windows.1
 

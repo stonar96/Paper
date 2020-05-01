@@ -1,14 +1,14 @@
-From be90753baac2d3f3f7548c3d1757dc2ef772506e Mon Sep 17 00:00:00 2001
+From 033f3c595fc177dfeee0413859e08ea5b2940df6 Mon Sep 17 00:00:00 2001
 From: William Blake Galbreath <Blake.Galbreath@GMail.com>
 Date: Sat, 25 Apr 2020 15:13:41 -0500
 Subject: [PATCH] Add phantom creative and insomniac controls
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index 88a45e517c..fc189ebc96 100644
+index be8f1cd927..c62609c0c2 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -689,4 +689,11 @@ public class PaperWorldConfig {
+@@ -677,4 +677,11 @@ public class PaperWorldConfig {
      private void lightQueueSize() {
          lightQueueSize = getInt("light-queue-size", lightQueueSize);
      }
@@ -58,5 +58,5 @@ index f488c22ed6..0db431cd6a 100644
  
                              if (!worldserver.worldProvider.f() || blockposition.getY() >= worldserver.getSeaLevel() && worldserver.f(blockposition)) {
 -- 
-2.26.2
+2.26.2.windows.1
 

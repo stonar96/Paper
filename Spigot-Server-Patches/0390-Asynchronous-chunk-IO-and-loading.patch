@@ -1,4 +1,4 @@
-From 748db0d90c3cc343b0dadb663f4f6ccad2b6161a Mon Sep 17 00:00:00 2001
+From cc225dfc8a2e6281bf8278473d846c33a3623cfa Mon Sep 17 00:00:00 2001
 From: Spottedleaf <Spottedleaf@users.noreply.github.com>
 Date: Sat, 13 Jul 2019 09:23:10 -0700
 Subject: [PATCH] Asynchronous chunk IO and loading
@@ -222,86 +222,6 @@ index dbd1439970..f4836e2da1 100644
 +        }
 +    }
  }
-diff --git a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
-index 23626bef3a..1edcecd2ee 100644
---- a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
-+++ b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
-@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
- import java.util.concurrent.atomic.AtomicInteger;
- import java.util.function.Supplier;
- 
-+import com.destroystokyo.paper.io.PrioritizedTaskQueue;
- import net.minecraft.server.*;
- import org.bukkit.Bukkit;
- import org.bukkit.World.Environment;
-@@ -150,6 +151,12 @@ public class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockControll
- 
-     private final AtomicInteger xrayRequests = new AtomicInteger();
- 
-+    // Paper start - async chunk api
-+    private Integer nextTicketHold() {
-+        return Integer.valueOf(this.xrayRequests.getAndIncrement());
-+    }
-+    // Paper end
-+
-     private Integer addXrayTickets(final int x, final int z, final ChunkProviderServer chunkProvider) {
-         final Integer hold = Integer.valueOf(this.xrayRequests.getAndIncrement());
- 
-@@ -181,6 +188,35 @@ public class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockControll
-         chunk.world.getChunkAt(locX, locZ + 1);
-     }
- 
-+    // Paper start - async chunk api
-+    private void loadNeighbourAsync(ChunkProviderServer chunkProvider, WorldServer world, int chunkX, int chunkZ, int[] counter, java.util.function.Consumer<Chunk> onNeighourLoad, Runnable onAllNeighboursLoad) {
-+        chunkProvider.getChunkAtAsynchronously(chunkX, chunkZ, true, (Chunk neighbour) -> {
-+            onNeighourLoad.accept(neighbour);
-+            if (++counter[0] == 4) {
-+                onAllNeighboursLoad.run();
-+            }
-+        });
-+        world.asyncChunkTaskManager.raisePriority(chunkX, chunkZ, PrioritizedTaskQueue.HIGHER_PRIORITY);
-+    }
-+
-+    private void loadNeighboursAsync(Chunk chunk, java.util.function.Consumer<Chunk> onNeighourLoad, Runnable onAllNeighboursLoad) {
-+        int[] loaded = new int[1];
-+
-+        int locX = chunk.getPos().x;
-+        int locZ = chunk.getPos().z;
-+        WorldServer world = ((WorldServer)chunk.world);
-+
-+        onNeighourLoad.accept(chunk);
-+
-+        ChunkProviderServer chunkProvider = world.getChunkProvider();
-+
-+        this.loadNeighbourAsync(chunkProvider, world, locX - 1, locZ, loaded, onNeighourLoad, onAllNeighboursLoad);
-+        this.loadNeighbourAsync(chunkProvider, world, locX + 1, locZ, loaded, onNeighourLoad, onAllNeighboursLoad);
-+        this.loadNeighbourAsync(chunkProvider, world, locX, locZ - 1, loaded, onNeighourLoad, onAllNeighboursLoad);
-+        this.loadNeighbourAsync(chunkProvider, world, locX, locZ + 1, loaded, onNeighourLoad, onAllNeighboursLoad);
-+    }
-+    // Paper end
-+
-     @Override
-     public boolean onChunkPacketCreate(Chunk chunk, int chunkSectionSelector, boolean force) {
-         int locX = chunk.getPos().x;
-@@ -256,11 +292,15 @@ public class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockControll
- 
-             if (chunks[0] == null || chunks[1] == null || chunks[2] == null || chunks[3] == null) {
-                 // we need to load
--                MinecraftServer.getServer().scheduleOnMain(() -> {
--                    Integer ticketHold = this.addXrayTickets(locX, locZ, world.getChunkProvider());
--                    this.loadNeighbours(chunk);
-+                // Paper start - async chunk api
-+                Integer ticketHold = this.nextTicketHold();
-+                this.loadNeighboursAsync(chunk, (Chunk neighbour) -> { // when a neighbour is loaded
-+                        ((WorldServer)neighbour.world).getChunkProvider().addTicket(TicketType.ANTIXRAY, neighbour.getPos(), 0, ticketHold);
-+                },
-+                () -> { // once neighbours get loaded
-                     this.modifyBlocks(packetPlayOutMapChunk, chunkPacketInfo, false, ticketHold);
-                 });
-+                // Paper end
-                 return;
-             }
- 
 diff --git a/src/main/java/com/destroystokyo/paper/io/IOUtil.java b/src/main/java/com/destroystokyo/paper/io/IOUtil.java
 new file mode 100644
 index 0000000000..5af0ac3d9e
@@ -3054,7 +2974,7 @@ index ed8c4a87b5..996c832638 100644
          return this.a == null ? new NibbleArray() : new NibbleArray((byte[]) this.a.clone());
      }
 diff --git a/src/main/java/net/minecraft/server/PlayerChunk.java b/src/main/java/net/minecraft/server/PlayerChunk.java
-index f1620ba80e..74e6b8b973 100644
+index 040d4b41ea..bf592125f4 100644
 --- a/src/main/java/net/minecraft/server/PlayerChunk.java
 +++ b/src/main/java/net/minecraft/server/PlayerChunk.java
 @@ -127,6 +127,18 @@ public class PlayerChunk {
@@ -3076,7 +2996,7 @@ index f1620ba80e..74e6b8b973 100644
      // Paper end
  
      public CompletableFuture<Either<IChunkAccess, PlayerChunk.Failure>> getStatusFutureUnchecked(ChunkStatus chunkstatus) {
-@@ -357,7 +369,7 @@ public class PlayerChunk {
+@@ -352,7 +364,7 @@ public class PlayerChunk {
          ChunkStatus chunkstatus = getChunkStatus(this.oldTicketLevel);
          ChunkStatus chunkstatus1 = getChunkStatus(this.ticketLevel);
          boolean flag = this.oldTicketLevel <= PlayerChunkMap.GOLDEN_TICKET;
@@ -3085,7 +3005,7 @@ index f1620ba80e..74e6b8b973 100644
          PlayerChunk.State playerchunk_state = getChunkState(this.oldTicketLevel);
          PlayerChunk.State playerchunk_state1 = getChunkState(this.ticketLevel);
          // CraftBukkit start
-@@ -393,6 +405,12 @@ public class PlayerChunk {
+@@ -388,6 +400,12 @@ public class PlayerChunk {
                  }
              });
  
@@ -3099,7 +3019,7 @@ index f1620ba80e..74e6b8b973 100644
                  completablefuture = (CompletableFuture) this.statusFutures.get(i);
                  if (completablefuture != null) {
 diff --git a/src/main/java/net/minecraft/server/PlayerChunkMap.java b/src/main/java/net/minecraft/server/PlayerChunkMap.java
-index 9c627bf3b4..19603343b2 100644
+index da9484dcb4..0e23a8134a 100644
 --- a/src/main/java/net/minecraft/server/PlayerChunkMap.java
 +++ b/src/main/java/net/minecraft/server/PlayerChunkMap.java
 @@ -63,7 +63,7 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
@@ -3882,13 +3802,13 @@ index db9f0196bd..a6d8ef5eb4 100644
 +    // Paper end
  }
 diff --git a/src/main/java/net/minecraft/server/TicketType.java b/src/main/java/net/minecraft/server/TicketType.java
-index 4cf28bc2df..6e0d0a54a2 100644
+index 75ab9f185b..8055f59982 100644
 --- a/src/main/java/net/minecraft/server/TicketType.java
 +++ b/src/main/java/net/minecraft/server/TicketType.java
-@@ -23,6 +23,7 @@ public class TicketType<T> {
+@@ -22,6 +22,7 @@ public class TicketType<T> {
+     public static final TicketType<Unit> PLUGIN = a("plugin", (a, b) -> 0); // CraftBukkit
      public static final TicketType<org.bukkit.plugin.Plugin> PLUGIN_TICKET = a("plugin_ticket", (plugin1, plugin2) -> plugin1.getClass().getName().compareTo(plugin2.getClass().getName())); // CraftBukkit
      public static final TicketType<Long> FUTURE_AWAIT = a("future_await", Long::compareTo); // Paper
-     public static final TicketType<Integer> ANTIXRAY = a("antixray", Integer::compareTo); // Paper - Anti-Xray
 +    public static final TicketType<Long> ASYNC_LOAD = a("async_load", Long::compareTo); // Paper
  
      public static <T> TicketType<T> a(String s, Comparator<T> comparator) {
@@ -4170,5 +4090,5 @@ index 07936eeba2..5bdcdcf9e8 100644
                  log.log( Level.SEVERE, "------------------------------" );
                  //
 -- 
-2.26.2
+2.26.2.windows.1
 

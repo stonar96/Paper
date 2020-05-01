@@ -1,4 +1,4 @@
-From fddb66ce22f3c1bbae3b98b54cfd7939fcfa9320 Mon Sep 17 00:00:00 2001
+From 89d260cc9f2c681987229d1a11a4ca85dd0cb9c2 Mon Sep 17 00:00:00 2001
 From: Spottedleaf <Spottedleaf@users.noreply.github.com>
 Date: Fri, 14 Feb 2020 01:24:39 -0800
 Subject: [PATCH] Optimise TickListServer by rewriting it
@@ -984,10 +984,10 @@ index 33cfeabdee..2287e47d1b 100644
      public String toString() {
          return this.e + ": " + this.a + ", " + this.b + ", " + this.c + ", " + this.f;
 diff --git a/src/main/java/net/minecraft/server/PlayerChunk.java b/src/main/java/net/minecraft/server/PlayerChunk.java
-index 74e6b8b973..04b97cec29 100644
+index bf592125f4..3d610e4196 100644
 --- a/src/main/java/net/minecraft/server/PlayerChunk.java
 +++ b/src/main/java/net/minecraft/server/PlayerChunk.java
-@@ -477,7 +477,9 @@ public class PlayerChunk {
+@@ -472,7 +472,9 @@ public class PlayerChunk {
                      PlayerChunk.this.isTickingReady = true;
  
  
@@ -1210,5 +1210,5 @@ index 9a2b4fa7a2..9b9e242432 100644
          this.I = new ObjectLinkedOpenHashSet();
          this.dataManager = worldnbtstorage;
 -- 
-2.26.2
+2.26.2.windows.1
 

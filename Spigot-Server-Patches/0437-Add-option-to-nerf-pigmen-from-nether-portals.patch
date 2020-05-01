@@ -1,14 +1,14 @@
-From 1801e9752d6966f08a71b51e05ab6c491b48d82b Mon Sep 17 00:00:00 2001
+From f564d1c8249d8d0fa7317cfc99483812a2b21972 Mon Sep 17 00:00:00 2001
 From: William Blake Galbreath <Blake.Galbreath@GMail.com>
 Date: Fri, 7 Feb 2020 14:36:56 -0600
 Subject: [PATCH] Add option to nerf pigmen from nether portals
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index bce502181f..7d408542e7 100644
+index ade7af40ef..47c6d66b78 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -653,4 +653,9 @@ public class PaperWorldConfig {
+@@ -641,4 +641,9 @@ public class PaperWorldConfig {
          disableHopperMoveEvents = getBoolean("hopper.disable-move-event", disableHopperMoveEvents);
          log("Hopper Move Item Events: " + (disableHopperMoveEvents ? "disabled" : "enabled"));
      }
@@ -62,5 +62,5 @@ index 599bcabd14..00df89d650 100644
                  String spawnReasonName = nbttagcompound.getString("Paper.SpawnReason");
                  try {
 -- 
-2.26.2
+2.26.2.windows.1
 

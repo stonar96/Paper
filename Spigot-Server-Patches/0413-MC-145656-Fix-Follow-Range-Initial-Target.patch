@@ -1,14 +1,14 @@
-From 47791f6612fb0b2cef0f8ed0d8879f4c202628cf Mon Sep 17 00:00:00 2001
+From bf6bc7d95cda9b3ab1d727a257749ac1a1b71578 Mon Sep 17 00:00:00 2001
 From: William Blake Galbreath <Blake.Galbreath@GMail.com>
 Date: Wed, 18 Dec 2019 22:21:35 -0600
 Subject: [PATCH] MC-145656 Fix Follow Range Initial Target
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index 3bbf77a8ec..f8d8cb8655 100644
+index 1c703e48e9..e89ad807ed 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -633,4 +633,9 @@ public class PaperWorldConfig {
+@@ -621,4 +621,9 @@ public class PaperWorldConfig {
      private void pillagerSettings() {
          disablePillagerPatrols = getBoolean("game-mechanics.disable-pillager-patrols", disablePillagerPatrols);
      }
@@ -63,5 +63,5 @@ index c76a43837b..e35ec2db07 100644
 +    // Paper end
  }
 -- 
-2.26.2
+2.26.2.windows.1
 

@@ -1,4 +1,4 @@
-From f311f269de4a50bb27e9d23f7f034d1ba5bd67a8 Mon Sep 17 00:00:00 2001
+From 09834d1dc6afe1890133c92cee71fbe039c55d5f Mon Sep 17 00:00:00 2001
 From: Aikar <aikar@aikar.co>
 Date: Sat, 11 Apr 2020 03:56:07 -0400
 Subject: [PATCH] Implement Chunk Priority / Urgency System for World Gen
@@ -59,7 +59,7 @@ index 747305619b..746b5b5589 100644
                  return ichunkaccess1;
              }, (playerchunk_failure) -> {
 diff --git a/src/main/java/net/minecraft/server/PlayerChunk.java b/src/main/java/net/minecraft/server/PlayerChunk.java
-index 04b97cec29..568fbbd5f2 100644
+index 3d610e4196..4b341c81fc 100644
 --- a/src/main/java/net/minecraft/server/PlayerChunk.java
 +++ b/src/main/java/net/minecraft/server/PlayerChunk.java
 @@ -43,6 +43,111 @@ public class PlayerChunk {
@@ -187,7 +187,7 @@ index 04b97cec29..568fbbd5f2 100644
      // Paper end
  
      public CompletableFuture<Either<IChunkAccess, PlayerChunk.Failure>> getStatusFutureUnchecked(ChunkStatus chunkstatus) {
-@@ -354,7 +465,7 @@ public class PlayerChunk {
+@@ -349,7 +460,7 @@ public class PlayerChunk {
      }
  
      public int k() {
@@ -197,7 +197,7 @@ index 04b97cec29..568fbbd5f2 100644
  
      private void d(int i) {
 diff --git a/src/main/java/net/minecraft/server/PlayerChunkMap.java b/src/main/java/net/minecraft/server/PlayerChunkMap.java
-index fb7bbe8744..6fa70eb08d 100644
+index 145c17cd47..b5f05bcd29 100644
 --- a/src/main/java/net/minecraft/server/PlayerChunkMap.java
 +++ b/src/main/java/net/minecraft/server/PlayerChunkMap.java
 @@ -324,6 +324,7 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
@@ -280,5 +280,5 @@ index fb7bbe8744..6fa70eb08d 100644
              return either.flatMap((list) -> {
                  Chunk chunk = (Chunk) list.get(list.size() / 2);
 -- 
-2.26.2
+2.26.2.windows.1
 

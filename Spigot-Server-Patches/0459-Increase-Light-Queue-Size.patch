@@ -1,4 +1,4 @@
-From b739b47db7bd4f5083b98e6168f265f53c272411 Mon Sep 17 00:00:00 2001
+From 38807403d13f486f8bc829bb173ce9d621658892 Mon Sep 17 00:00:00 2001
 From: Aikar <aikar@aikar.co>
 Date: Wed, 8 Apr 2020 21:24:05 -0400
 Subject: [PATCH] Increase Light Queue Size
@@ -14,10 +14,10 @@ light engine on shutdown...
 The queue size only puts a cap on max loss, doesn't solve that problem.
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index 659a011e97..88a45e517c 100644
+index a4b7acb698..be8f1cd927 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -684,4 +684,9 @@ public class PaperWorldConfig {
+@@ -672,4 +672,9 @@ public class PaperWorldConfig {
      private void trackerUpdateDistance() {
          trackerUpdateDistance = getDouble("tracker-update-distance", trackerUpdateDistance);
      }
@@ -41,5 +41,5 @@ index d1f82eff21..77adc64e30 100644
          // CraftBukkit start
          this.forceTicks = false;
 -- 
-2.26.2
+2.26.2.windows.1
 

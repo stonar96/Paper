@@ -1,14 +1,14 @@
-From 290425bd369b23ac8a78758a5370a6025aa00252 Mon Sep 17 00:00:00 2001
+From 791ede0c9717372ad443760d623119e35e62c58a Mon Sep 17 00:00:00 2001
 From: Byteflux <byte@byteflux.net>
 Date: Wed, 2 Mar 2016 02:17:54 -0600
 Subject: [PATCH] Generator Settings
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index fd3dbea628..e790326c9c 100644
+index 515673e0fe..928fefb419 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -618,4 +618,9 @@ public class PaperWorldConfig {
+@@ -606,4 +606,9 @@ public class PaperWorldConfig {
      private void perPlayerMobSpawns() {
          perPlayerMobSpawns = getBoolean("per-player-mob-spawns", false);
      }
@@ -52,5 +52,5 @@ index af81a84142..2268fbdd87 100644
                      }
                  }
 -- 
-2.26.2
+2.26.2.windows.1
 

@@ -1,4 +1,4 @@
-From 8a760283129e8313839f6fa60e7275446201e46a Mon Sep 17 00:00:00 2001
+From 53cc00e3dc3e3e0c3c06a86db0df1ac393123647 Mon Sep 17 00:00:00 2001
 From: froobynooby <froobynooby@froobworld.com>
 Date: Thu, 20 Feb 2020 15:50:49 +0930
 Subject: [PATCH] Reduce entity tracker updates on move
@@ -40,10 +40,10 @@ packets often show up as a major contributor to TPS loss in
 servers with large player counts
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index 7ca67a4aa5..e93176d8f2 100644
+index c3af4c9a9f..bdc2382ee7 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -668,4 +668,9 @@ public class PaperWorldConfig {
+@@ -656,4 +656,9 @@ public class PaperWorldConfig {
      private void zombieVillagerInfectionChance() {
          zombieVillagerInfectionChance = getDouble("zombie-villager-infection-chance", zombieVillagerInfectionChance);
      }
@@ -69,7 +69,7 @@ index cf837bdb3b..9da6ed85fa 100644
      // CraftBukkit start
      public String displayName;
 diff --git a/src/main/java/net/minecraft/server/PlayerChunkMap.java b/src/main/java/net/minecraft/server/PlayerChunkMap.java
-index 043ba702d7..8f477767b9 100644
+index 974a6be4a4..7c7327bbb7 100644
 --- a/src/main/java/net/minecraft/server/PlayerChunkMap.java
 +++ b/src/main/java/net/minecraft/server/PlayerChunkMap.java
 @@ -133,6 +133,39 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
@@ -209,5 +209,5 @@ index 043ba702d7..8f477767b9 100644
  
              }
 -- 
-2.26.2
+2.26.2.windows.1
 

@@ -1,4 +1,4 @@
-From 0efdcafd549e5d42d9d5adb890fed341268ab025 Mon Sep 17 00:00:00 2001
+From 9bcbea4a51aee359eea55f4303163c03d731c6c3 Mon Sep 17 00:00:00 2001
 From: Lucavon <lucavonlp@gmail.com>
 Date: Tue, 23 Jul 2019 20:29:20 -0500
 Subject: [PATCH] Configurable projectile relative velocity
@@ -25,12 +25,12 @@ P3) Solutions for 1) and especially 2) might not be future-proof, while this
 server-internal fix makes this change future-proof.
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index 4c50109365..a09282e00e 100644
+index a3fc76b512..90ba51e05b 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -555,4 +555,9 @@ public class PaperWorldConfig {
+@@ -543,4 +543,9 @@ public class PaperWorldConfig {
          }
-         log("Anti-Xray: " + (antiXray ? "enabled" : "disabled") + " / Engine Mode: " + engineMode.getDescription() + " / Chunk Edge Mode: " + chunkEdgeMode.getDescription() + " / Up to " + ((maxChunkSectionIndex + 1) * 16) + " blocks / Update Radius: " + updateRadius);
+         log("Anti-Xray: " + (antiXray ? "enabled" : "disabled") + " / Engine Mode: " + engineMode.getDescription() + " / Up to " + ((maxChunkSectionIndex + 1) * 16) + " blocks / Update Radius: " + updateRadius);
      }
 +
 +    public boolean disableRelativeProjectileVelocity;
@@ -65,5 +65,5 @@ index 6c091b6808..f5c8074dcf 100644
  
      @Override
 -- 
-2.26.2
+2.26.2.windows.1
 

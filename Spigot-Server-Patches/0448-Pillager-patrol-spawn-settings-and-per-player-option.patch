@@ -1,4 +1,4 @@
-From af50e068e7f0dfcf365d1ce5f047c4945ef86ea0 Mon Sep 17 00:00:00 2001
+From 37bfcc213a2a5fc0077a95684ade2d5e5f84388e Mon Sep 17 00:00:00 2001
 From: Phoenix616 <mail@moep.tv>
 Date: Sat, 1 Feb 2020 16:50:39 +0100
 Subject: [PATCH] Pillager patrol spawn settings and per player options
@@ -10,10 +10,10 @@ When not per player it will use the Vanilla mechanic of one delay per
 world and the world age for the start day.
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-index e93176d8f2..659a011e97 100644
+index bdc2382ee7..a4b7acb698 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
-@@ -641,10 +641,21 @@ public class PaperWorldConfig {
+@@ -629,10 +629,21 @@ public class PaperWorldConfig {
      }
  
      public boolean disablePillagerPatrols = false;
@@ -140,5 +140,5 @@ index 3b6034038a..9c95c0ccfc 100644
          return this.a(t0, Counter.DEFAULT);
      }
 -- 
-2.26.2
+2.26.2.windows.1
 
