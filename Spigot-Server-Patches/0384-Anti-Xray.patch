@@ -1,4 +1,4 @@
-From 811e3b68dac83939ebea390ad4c6073380fa6753 Mon Sep 17 00:00:00 2001
+From 937ce8ed81e120d5dd76359c4f52f3b703a9853f Mon Sep 17 00:00:00 2001
 From: stonar96 <minecraft.stonar96@gmail.com>
 Date: Mon, 20 Aug 2018 03:03:58 +0200
 Subject: [PATCH] Anti-Xray
@@ -118,7 +118,7 @@ index 0000000000..f7e376ce6a
 +}
 diff --git a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
 new file mode 100644
-index 0000000000..23626bef3a
+index 0000000000..fb48c63d30
 --- /dev/null
 +++ b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
 @@ -0,0 +1,782 @@
@@ -436,13 +436,13 @@ index 0000000000..23626bef3a
 +                        }
 +                    }
 +
-+                    dataBitsWriter.setIndex(chunkPacketInfoAntiXray.getOrCreateIdForIndex(chunkSectionIndex));
++                    dataBitsWriter.setIndex(chunkPacketInfoAntiXray.getDataBitsIndex(chunkSectionIndex));
 +
 +                    //Check if the chunk section below was not obfuscated
 +                    if (chunkSectionIndex == 0 || !chunkPacketInfoAntiXray.isWritten(chunkSectionIndex - 1) || chunkPacketInfoAntiXray.getPredefinedObjects(chunkSectionIndex - 1) == null) {
 +                        //If so, initialize some stuff
 +                        dataBitsReader.setBitsPerObject(chunkPacketInfoAntiXray.getBitsPerObject(chunkSectionIndex));
-+                        dataBitsReader.setIndex(chunkPacketInfoAntiXray.getOrCreateIdForIndex(chunkSectionIndex));
++                        dataBitsReader.setIndex(chunkPacketInfoAntiXray.getDataBitsIndex(chunkSectionIndex));
 +                        solidTemp = readDataPalette(chunkPacketInfoAntiXray.getDataPalette(chunkSectionIndex), solid, solidGlobal);
 +                        obfuscateTemp = readDataPalette(chunkPacketInfoAntiXray.getDataPalette(chunkSectionIndex), obfuscate, obfuscateGlobal);
 +                        //Read the blocks of the upper layer of the chunk section below if it exists
@@ -503,7 +503,7 @@ index 0000000000..23626bef3a
 +                    } else {
 +                        //If not, initialize the reader and other stuff for the chunk section above to obfuscate the upper layer of the current chunk section
 +                        dataBitsReader.setBitsPerObject(chunkPacketInfoAntiXray.getBitsPerObject(chunkSectionIndex + 1));
-+                        dataBitsReader.setIndex(chunkPacketInfoAntiXray.getOrCreateIdForIndex(chunkSectionIndex + 1));
++                        dataBitsReader.setIndex(chunkPacketInfoAntiXray.getDataBitsIndex(chunkSectionIndex + 1));
 +                        solidTemp = readDataPalette(chunkPacketInfoAntiXray.getDataPalette(chunkSectionIndex + 1), solid, solidGlobal);
 +                        obfuscateTemp = readDataPalette(chunkPacketInfoAntiXray.getDataPalette(chunkSectionIndex + 1), obfuscate, obfuscateGlobal);
 +                        boolean[][] temp = current;
@@ -906,7 +906,7 @@ index 0000000000..23626bef3a
 +}
 diff --git a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketInfo.java b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketInfo.java
 new file mode 100644
-index 0000000000..a68bace353
+index 0000000000..41618994b4
 --- /dev/null
 +++ b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketInfo.java
 @@ -0,0 +1,81 @@
@@ -970,7 +970,7 @@ index 0000000000..a68bace353
 +        dataPalettes[chunkSectionIndex] = dataPalette;
 +    }
 +
-+    public int getOrCreateIdForIndex(int chunkSectionIndex) {
++    public int getDataBitsIndex(int chunkSectionIndex) {
 +        return dataBitsIndexes[chunkSectionIndex];
 +    }
 +
@@ -1702,5 +1702,5 @@ index 8191e7c348..969d548de2 100644
          return section;
      }
 -- 
-2.26.2
+2.26.2.windows.1
 
