@@ -1,4 +1,4 @@
-From 4b09ce8c2122e16ceca4f1ebf1c64b8610de9dd7 Mon Sep 17 00:00:00 2001
+From b58be70ffa4d09bd7a84d7dd21fe65a843347771 Mon Sep 17 00:00:00 2001
 From: Spottedleaf <Spottedleaf@users.noreply.github.com>
 Date: Mon, 27 Jan 2020 21:28:00 -0800
 Subject: [PATCH] Optimise random block ticking
@@ -126,7 +126,7 @@ index a23dfeb63d..2e3db1a755 100644
      }
  
 diff --git a/src/main/java/net/minecraft/server/ChunkSection.java b/src/main/java/net/minecraft/server/ChunkSection.java
-index 0ef0e42a3d..76bb0a46f1 100644
+index d7031d82ee..baff0156d9 100644
 --- a/src/main/java/net/minecraft/server/ChunkSection.java
 +++ b/src/main/java/net/minecraft/server/ChunkSection.java
 @@ -6,12 +6,15 @@ import javax.annotation.Nullable;
@@ -144,10 +144,10 @@ index 0ef0e42a3d..76bb0a46f1 100644
 +    Chunk chunk; // Paper
 +    final com.destroystokyo.paper.util.maplist.IBlockDataList tickingList = new com.destroystokyo.paper.util.maplist.IBlockDataList(); // Paper
 +
-     public ChunkSection(int i) {
-         // Paper start - add parameters
-         this(i, (IChunkAccess)null, (IWorldReader)null, true);
-@@ -32,6 +35,11 @@ public class ChunkSection {
+     public ChunkSection(int i, IChunkAccess chunk, IWorldReader world, boolean initializeBlocks) { // Paper - Anti-Xray
+         this(i, (short) 0, (short) 0, (short) 0, chunk, world, initializeBlocks); // Paper - Anti-Xray
+     }
+@@ -22,6 +25,11 @@ public class ChunkSection {
          this.tickingBlockCount = short1;
          this.e = short2;
          this.blockIds = new DataPaletteBlock<>(ChunkSection.GLOBAL_PALETTE, Block.REGISTRY_ID, GameProfileSerializer::d, GameProfileSerializer::a, Blocks.AIR.getBlockData(), world instanceof GeneratorAccess ? ((GeneratorAccess) world).getMinecraftWorld().chunkPacketBlockController.getPredefinedBlockData(world, chunk, this, initializeBlocks) : null, initializeBlocks); // Paper - Anti-Xray - Add predefined block data
@@ -159,7 +159,7 @@ index 0ef0e42a3d..76bb0a46f1 100644
      }
  
      public IBlockData getType(int i, int j, int k) {
-@@ -70,6 +78,9 @@ public class ChunkSection {
+@@ -60,6 +68,9 @@ public class ChunkSection {
              --this.nonEmptyBlockCount;
              if (iblockdata1.q()) {
                  --this.tickingBlockCount;
@@ -169,7 +169,7 @@ index 0ef0e42a3d..76bb0a46f1 100644
              }
          }
  
-@@ -81,6 +92,9 @@ public class ChunkSection {
+@@ -71,6 +82,9 @@ public class ChunkSection {
              ++this.nonEmptyBlockCount;
              if (iblockdata.q()) {
                  ++this.tickingBlockCount;
@@ -179,7 +179,7 @@ index 0ef0e42a3d..76bb0a46f1 100644
              }
          }
  
-@@ -116,23 +130,29 @@ public class ChunkSection {
+@@ -106,23 +120,29 @@ public class ChunkSection {
      }
  
      public void recalcBlockCounts() {
@@ -266,10 +266,10 @@ index f9680b6830..a61cffa3f4 100644
 +    // Paper end
  }
 diff --git a/src/main/java/net/minecraft/server/DataPaletteBlock.java b/src/main/java/net/minecraft/server/DataPaletteBlock.java
-index 44aed67274..fa664897fb 100644
+index cec4deda23..b3d6698cbe 100644
 --- a/src/main/java/net/minecraft/server/DataPaletteBlock.java
 +++ b/src/main/java/net/minecraft/server/DataPaletteBlock.java
-@@ -287,6 +287,14 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
+@@ -276,6 +276,14 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
          });
      }
  
