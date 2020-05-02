@@ -1,4 +1,4 @@
-From b2436021374f61062a581239cc1a3500edd54bb4 Mon Sep 17 00:00:00 2001
+From ef6e738043402c31f5d54f3423e90c878fa64e4e Mon Sep 17 00:00:00 2001
 From: Aikar <aikar@aikar.co>
 Date: Mon, 28 Mar 2016 20:55:47 -0400
 Subject: [PATCH] MC Utils
@@ -2689,6 +2689,18 @@ index 32c496fa88..ba2af2abe2 100644
      @Nullable
      @Override
      public IChunkAccess getChunkAt(int i, int j, ChunkStatus chunkstatus, boolean flag) {
+diff --git a/src/main/java/net/minecraft/server/ChunkSection.java b/src/main/java/net/minecraft/server/ChunkSection.java
+index 652067757a..638b0e3979 100644
+--- a/src/main/java/net/minecraft/server/ChunkSection.java
++++ b/src/main/java/net/minecraft/server/ChunkSection.java
+@@ -132,6 +132,7 @@ public class ChunkSection {
+         return this.blockIds;
+     }
+ 
++    public void writeChunkSection(PacketDataSerializer packetDataSerializer) { this.b(packetDataSerializer); } // Paper - OBFHELPER
+     public void b(PacketDataSerializer packetdataserializer) {
+         packetdataserializer.writeShort(this.nonEmptyBlockCount);
+         this.blockIds.b(packetdataserializer);
 diff --git a/src/main/java/net/minecraft/server/DataBits.java b/src/main/java/net/minecraft/server/DataBits.java
 index 7ca3a1d0c5..2edd9b8714 100644
 --- a/src/main/java/net/minecraft/server/DataBits.java
@@ -4034,5 +4046,5 @@ index 1aec70a1f1..f72c13beda 100644
      private int initialCapacity;
  
 -- 
-2.26.2
+2.26.2.windows.1
 
