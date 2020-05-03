@@ -1,4 +1,4 @@
-From c05490c2ccd30af8d9dc5d35f9cb2a740c08e6ed Mon Sep 17 00:00:00 2001
+From 355c62a9c10ecb2643c9058f69e7c7c9d94c254a Mon Sep 17 00:00:00 2001
 From: Spottedleaf <Spottedleaf@users.noreply.github.com>
 Date: Mon, 27 Jan 2020 21:28:00 -0800
 Subject: [PATCH] Optimise random block ticking
@@ -126,7 +126,7 @@ index b1454c63a16..dbf5a183a09 100644
      }
  
 diff --git a/src/main/java/net/minecraft/server/ChunkSection.java b/src/main/java/net/minecraft/server/ChunkSection.java
-index 0b1a47230e9..3ccfc4a0db0 100644
+index eeb7eee925d..64b625e988f 100644
 --- a/src/main/java/net/minecraft/server/ChunkSection.java
 +++ b/src/main/java/net/minecraft/server/ChunkSection.java
 @@ -6,12 +6,14 @@ import javax.annotation.Nullable;
@@ -145,7 +145,7 @@ index 0b1a47230e9..3ccfc4a0db0 100644
 +
      // Paper start - Anti-Xray - Add parameters
      @Deprecated public ChunkSection(int i) { this(i, null, null, true); } // Notice for updates: Please make sure this constructor isn't used anywhere
-     public ChunkSection(int i, IChunkAccess chunk, IWorldReader world, boolean initializeBlocks) {
+     public ChunkSection(int i, IChunkAccess chunk, World world, boolean initializeBlocks) {
 @@ -66,6 +68,9 @@ public class ChunkSection {
              --this.nonEmptyBlockCount;
              if (iblockdata1.q()) {
@@ -253,10 +253,10 @@ index f9680b6830c..a61cffa3f49 100644
 +    // Paper end
  }
 diff --git a/src/main/java/net/minecraft/server/DataPaletteBlock.java b/src/main/java/net/minecraft/server/DataPaletteBlock.java
-index ad6d2943a16..a3da76e3707 100644
+index 2c7872bd051..be5f98c3c36 100644
 --- a/src/main/java/net/minecraft/server/DataPaletteBlock.java
 +++ b/src/main/java/net/minecraft/server/DataPaletteBlock.java
-@@ -283,6 +283,14 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
+@@ -281,6 +281,14 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
          });
      }
  
