@@ -1,4 +1,4 @@
-From 3af312dd1ee39d476270e79b0fbb48c5e78da745 Mon Sep 17 00:00:00 2001
+From c05490c2ccd30af8d9dc5d35f9cb2a740c08e6ed Mon Sep 17 00:00:00 2001
 From: Spottedleaf <Spottedleaf@users.noreply.github.com>
 Date: Mon, 27 Jan 2020 21:28:00 -0800
 Subject: [PATCH] Optimise random block ticking
@@ -126,7 +126,7 @@ index b1454c63a16..dbf5a183a09 100644
      }
  
 diff --git a/src/main/java/net/minecraft/server/ChunkSection.java b/src/main/java/net/minecraft/server/ChunkSection.java
-index ae0ca89fda5..34d20d6afe8 100644
+index 0b1a47230e9..3ccfc4a0db0 100644
 --- a/src/main/java/net/minecraft/server/ChunkSection.java
 +++ b/src/main/java/net/minecraft/server/ChunkSection.java
 @@ -6,12 +6,14 @@ import javax.annotation.Nullable;
@@ -143,10 +143,10 @@ index ae0ca89fda5..34d20d6afe8 100644
  
 +    final com.destroystokyo.paper.util.maplist.IBlockDataList tickingList = new com.destroystokyo.paper.util.maplist.IBlockDataList(); // Paper
 +
-     public ChunkSection(int i, IChunkAccess chunk, IWorldReader world, boolean initializeBlocks) { // Paper - Anti-Xray - Add parameters
-         this(i, (short) 0, (short) 0, (short) 0, chunk, world, initializeBlocks); // Paper - Anti-Xray - Add parameters
-     }
-@@ -60,6 +62,9 @@ public class ChunkSection {
+     // Paper start - Anti-Xray - Add parameters
+     @Deprecated public ChunkSection(int i) { this(i, null, null, true); } // Notice for updates: Please make sure this constructor isn't used anywhere
+     public ChunkSection(int i, IChunkAccess chunk, IWorldReader world, boolean initializeBlocks) {
+@@ -66,6 +68,9 @@ public class ChunkSection {
              --this.nonEmptyBlockCount;
              if (iblockdata1.q()) {
                  --this.tickingBlockCount;
@@ -156,7 +156,7 @@ index ae0ca89fda5..34d20d6afe8 100644
              }
          }
  
-@@ -71,6 +76,9 @@ public class ChunkSection {
+@@ -77,6 +82,9 @@ public class ChunkSection {
              ++this.nonEmptyBlockCount;
              if (iblockdata.q()) {
                  ++this.tickingBlockCount;
@@ -166,7 +166,7 @@ index ae0ca89fda5..34d20d6afe8 100644
              }
          }
  
-@@ -106,23 +114,29 @@ public class ChunkSection {
+@@ -112,23 +120,29 @@ public class ChunkSection {
      }
  
      public void recalcBlockCounts() {
@@ -253,10 +253,10 @@ index f9680b6830c..a61cffa3f49 100644
 +    // Paper end
  }
 diff --git a/src/main/java/net/minecraft/server/DataPaletteBlock.java b/src/main/java/net/minecraft/server/DataPaletteBlock.java
-index 83098b12390..dc068571c38 100644
+index ad6d2943a16..a3da76e3707 100644
 --- a/src/main/java/net/minecraft/server/DataPaletteBlock.java
 +++ b/src/main/java/net/minecraft/server/DataPaletteBlock.java
-@@ -276,6 +276,14 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
+@@ -283,6 +283,14 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
          });
      }
  

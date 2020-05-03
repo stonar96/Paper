@@ -1,4 +1,4 @@
-From 3499c93e4577a5f3be5881c2fa6a942e2394b66c Mon Sep 17 00:00:00 2001
+From a9051538d2de1335cda1c320a59485176e7d21cf Mon Sep 17 00:00:00 2001
 From: Spottedleaf <Spottedleaf@users.noreply.github.com>
 Date: Tue, 14 Jan 2020 14:59:08 -0800
 Subject: [PATCH] Optimise Chunk#getFluid
@@ -48,10 +48,10 @@ index dbf5a183a09..d319f7ede3f 100644
  
      // CraftBukkit start
 diff --git a/src/main/java/net/minecraft/server/ChunkSection.java b/src/main/java/net/minecraft/server/ChunkSection.java
-index 34d20d6afe8..5ae9afd75cb 100644
+index 3ccfc4a0db0..4339b188d1c 100644
 --- a/src/main/java/net/minecraft/server/ChunkSection.java
 +++ b/src/main/java/net/minecraft/server/ChunkSection.java
-@@ -31,7 +31,7 @@ public class ChunkSection {
+@@ -37,7 +37,7 @@ public class ChunkSection {
      }
  
      public Fluid b(int i, int j, int k) {
