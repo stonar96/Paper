@@ -1,4 +1,4 @@
-From 902a2fe7cd9ba082987d0eb661edf1e79373ac31 Mon Sep 17 00:00:00 2001
+From 3af312dd1ee39d476270e79b0fbb48c5e78da745 Mon Sep 17 00:00:00 2001
 From: Spottedleaf <Spottedleaf@users.noreply.github.com>
 Date: Mon, 27 Jan 2020 21:28:00 -0800
 Subject: [PATCH] Optimise random block ticking
@@ -126,10 +126,10 @@ index b1454c63a16..dbf5a183a09 100644
      }
  
 diff --git a/src/main/java/net/minecraft/server/ChunkSection.java b/src/main/java/net/minecraft/server/ChunkSection.java
-index ae0ca89fda5..0f7ab7a7731 100644
+index ae0ca89fda5..34d20d6afe8 100644
 --- a/src/main/java/net/minecraft/server/ChunkSection.java
 +++ b/src/main/java/net/minecraft/server/ChunkSection.java
-@@ -6,12 +6,15 @@ import javax.annotation.Nullable;
+@@ -6,12 +6,14 @@ import javax.annotation.Nullable;
  public class ChunkSection {
  
      public static final DataPalette<IBlockData> GLOBAL_PALETTE = new DataPaletteGlobal<>(Block.REGISTRY_ID, Blocks.AIR.getBlockData());
@@ -141,25 +141,12 @@ index ae0ca89fda5..0f7ab7a7731 100644
      private short e;
      final DataPaletteBlock<IBlockData> blockIds;
  
-+    Chunk chunk; // Paper
 +    final com.destroystokyo.paper.util.maplist.IBlockDataList tickingList = new com.destroystokyo.paper.util.maplist.IBlockDataList(); // Paper
 +
      public ChunkSection(int i, IChunkAccess chunk, IWorldReader world, boolean initializeBlocks) { // Paper - Anti-Xray - Add parameters
          this(i, (short) 0, (short) 0, (short) 0, chunk, world, initializeBlocks); // Paper - Anti-Xray - Add parameters
      }
-@@ -22,6 +25,11 @@ public class ChunkSection {
-         this.tickingBlockCount = short1;
-         this.e = short2;
-         this.blockIds = new DataPaletteBlock<>(ChunkSection.GLOBAL_PALETTE, Block.REGISTRY_ID, GameProfileSerializer::d, GameProfileSerializer::a, Blocks.AIR.getBlockData(), world instanceof GeneratorAccess ? ((GeneratorAccess) world).getMinecraftWorld().chunkPacketBlockController.getPredefinedBlockData(world, chunk, this, initializeBlocks) : null, initializeBlocks); // Paper - Anti-Xray - Add predefined block data
-+        // Paper start
-+        if (chunk instanceof Chunk) {
-+            this.chunk = (Chunk)chunk;
-+        }
-+        // Paper end
-     }
- 
-     public IBlockData getType(int i, int j, int k) {
-@@ -60,6 +68,9 @@ public class ChunkSection {
+@@ -60,6 +62,9 @@ public class ChunkSection {
              --this.nonEmptyBlockCount;
              if (iblockdata1.q()) {
                  --this.tickingBlockCount;
@@ -169,7 +156,7 @@ index ae0ca89fda5..0f7ab7a7731 100644
              }
          }
  
-@@ -71,6 +82,9 @@ public class ChunkSection {
+@@ -71,6 +76,9 @@ public class ChunkSection {
              ++this.nonEmptyBlockCount;
              if (iblockdata.q()) {
                  ++this.tickingBlockCount;
@@ -179,7 +166,7 @@ index ae0ca89fda5..0f7ab7a7731 100644
              }
          }
  
-@@ -106,23 +120,29 @@ public class ChunkSection {
+@@ -106,23 +114,29 @@ public class ChunkSection {
      }
  
      public void recalcBlockCounts() {
