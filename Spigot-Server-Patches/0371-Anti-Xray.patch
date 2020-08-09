@@ -98,10 +98,10 @@ index 0000000000000000000000000000000000000000..df7e4183d8842f5be8ae9d0698f8fa90
 +}
 diff --git a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7198cf5e91b1bb725bc0dc2dc81a26b8dbf01f93
+index 0000000000000000000000000000000000000000..2090cee874ad5a68f7d95c8ac0c8d89e24c4bb28
 --- /dev/null
 +++ b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
-@@ -0,0 +1,587 @@
+@@ -0,0 +1,602 @@
 +package com.destroystokyo.paper.antixray;
 +
 +import java.util.ArrayList;
@@ -290,10 +290,25 @@ index 0000000000000000000000000000000000000000..7198cf5e91b1bb725bc0dc2dc81a26b8
 +        boolean[] obfuscateTemp = null;
 +        dataBitsReader.setDataBits(chunkPacketInfoAntiXray.getData());
 +        dataBitsWriter.setDataBits(chunkPacketInfoAntiXray.getData());
-+        ThreadLocalRandom threadLocalRandom = ThreadLocalRandom.current();
 +        int numberOfBlocks = predefinedBlockDataBits.length;
 +        // Keep the lambda expressions as simple as possible. They are used very frequently.
-+        IntSupplier random = numberOfBlocks == 1 ? (() -> 0) : (() -> threadLocalRandom.nextInt(numberOfBlocks));
++        IntSupplier random = numberOfBlocks == 1 ? (() -> 0) : new IntSupplier() {
++            private int state;
++
++            {
++                while ((state = ThreadLocalRandom.current().nextInt()) == 0);
++            }
++
++            @Override
++            public int getAsInt() {
++                // https://en.wikipedia.org/wiki/Xorshift
++                state ^= state << 13;
++                state ^= state >>> 17;
++                state ^= state << 5;
++                // https://www.pcg-random.org/posts/bounded-rands.html
++                return (int) ((Integer.toUnsignedLong(state) * numberOfBlocks) >>> 32);
++            }
++        };
 +
 +        for (int chunkSectionIndex = 0; chunkSectionIndex <= maxChunkSectionIndex; chunkSectionIndex++) {
 +            if (chunkPacketInfoAntiXray.isWritten(chunkSectionIndex) && chunkPacketInfoAntiXray.getPredefinedObjects(chunkSectionIndex) != null) {
