@@ -1,0 +1,261 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Steiner <markus.st96@gmail.com>
+Date: Thu, 4 Mar 2021 19:50:28 +0100
+Subject: [PATCH] Generate air pockets
+
+
+diff --git a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
+index b473709774fbbd502d5e04c98041ae7c829b4083..b41ad77d9482cf109fe040aadb4b3f9b4e34ce70 100644
+--- a/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
++++ b/src/main/java/com/destroystokyo/paper/PaperWorldConfig.java
+@@ -520,6 +520,7 @@ public class PaperWorldConfig {
+     public int updateRadius;
+     public boolean lavaObscures;
+     public boolean usePermission;
++    public boolean generateAirPockets;
+     public List<String> hiddenBlocks;
+     public List<String> replacementBlocks;
+     private void antiXray() {
+@@ -531,6 +532,7 @@ public class PaperWorldConfig {
+         updateRadius = getInt("anti-xray.update-radius", 2);
+         lavaObscures = getBoolean("anti-xray.lava-obscures", false);
+         usePermission = getBoolean("anti-xray.use-permission", false);
++        generateAirPockets = getBoolean("anti-xray.generate-air-pockets", false);
+         hiddenBlocks = getList("anti-xray.hidden-blocks", Arrays.asList("gold_ore", "iron_ore", "coal_ore", "lapis_ore", "mossy_cobblestone", "obsidian", "chest", "diamond_ore", "redstone_ore", "clay", "emerald_ore", "ender_chest"));
+         replacementBlocks = getList("anti-xray.replacement-blocks", Arrays.asList("stone", "oak_planks"));
+         if (PaperConfig.version < 19) {
+diff --git a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
+index bba2dbaf9549690d929f546c2a4a845b03e86130..11cb79503d2d072505be6f2a62ca5ec5b1c74674 100644
+--- a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
++++ b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
+@@ -22,6 +22,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+     private final int maxChunkSectionIndex;
+     private final int updateRadius;
+     private final boolean usePermission;
++    private final boolean generateAirPockets;
+     private final IBlockData[] predefinedBlockData;
+     private final IBlockData[] predefinedBlockDataFull;
+     private final IBlockData[] predefinedBlockDataStone;
+@@ -42,6 +43,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+         maxChunkSectionIndex = paperWorldConfig.maxChunkSectionIndex;
+         updateRadius = paperWorldConfig.updateRadius;
+         usePermission = paperWorldConfig.usePermission;
++        generateAirPockets = paperWorldConfig.generateAirPockets;
+ 
+         this.executor = executor;
+ 
+@@ -71,12 +73,20 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                 }
+             }
+ 
++            if (predefinedBlockDataList.isEmpty()) {
++                predefinedBlockDataList.add(Blocks.DIAMOND_ORE.getBlockData());
++            }
++
++            if (generateAirPockets) {
++                predefinedBlockDataList.add(Blocks.AIR.getBlockData());
++            }
++
+             // The doc of the LinkedHashSet(Collection<? extends E> c) constructor doesn't specify that the insertion order is the predictable iteration order of the specified Collection, although it is in the implementation
+             Set<IBlockData> predefinedBlockDataSet = new LinkedHashSet<IBlockData>();
+             // Therefore addAll(Collection<? extends E> c) is used, which guarantees this order in the doc
+             predefinedBlockDataSet.addAll(predefinedBlockDataList);
+-            predefinedBlockData = predefinedBlockDataSet.size() == 0 ? new IBlockData[] {Blocks.DIAMOND_ORE.getBlockData()} : predefinedBlockDataSet.toArray(new IBlockData[0]);
+-            predefinedBlockDataFull = predefinedBlockDataSet.size() == 0 ? new IBlockData[] {Blocks.DIAMOND_ORE.getBlockData()} : predefinedBlockDataList.toArray(new IBlockData[0]);
++            predefinedBlockData = predefinedBlockDataSet.toArray(new IBlockData[0]);
++            predefinedBlockDataFull = predefinedBlockDataList.toArray(new IBlockData[0]);
+             predefinedBlockDataStone = null;
+             predefinedBlockDataNetherrack = null;
+             predefinedBlockDataEndStone = null;
+@@ -184,6 +194,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+         executor.execute((ChunkPacketInfoAntiXray) chunkPacketInfo);
+     }
+ 
++    private final ThreadLocal<org.bukkit.util.noise.SimplexOctaveGenerator> generator = ThreadLocal.withInitial(() -> { org.bukkit.util.noise.SimplexOctaveGenerator generator = new org.bukkit.util.noise.SimplexOctaveGenerator(0L, 8); generator.setScale(0.1); return generator; });
+     // Actually these fields should be variables inside the obfuscate method but in sync mode or with SingleThreadExecutor in async mode it's okay (even without ThreadLocal)
+     // If an ExecutorService with multiple threads is used, ThreadLocal must be used here
+     private final ThreadLocal<int[]> predefinedBlockDataBits = ThreadLocal.withInitial(() -> new int[getPredefinedBlockDataFullLength()]);
+@@ -195,6 +206,9 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+     private static final ThreadLocal<boolean[][]> nextNext = ThreadLocal.withInitial(() -> new boolean[16][16]);
+ 
+     public void obfuscate(ChunkPacketInfoAntiXray chunkPacketInfoAntiXray) {
++        org.bukkit.util.noise.SimplexOctaveGenerator generator = this.generator.get();
++        int chunkX = chunkPacketInfoAntiXray.getChunk().locX;
++        int chunkZ = chunkPacketInfoAntiXray.getChunk().locZ;
+         int[] predefinedBlockDataBits = this.predefinedBlockDataBits.get();
+         boolean[] solid = this.solid.get();
+         boolean[] obfuscate = this.obfuscate.get();
+@@ -211,7 +225,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+         dataBitsWriter.setDataBits(chunkPacketInfoAntiXray.getData());
+         int numberOfBlocks = predefinedBlockDataBits.length;
+         // Keep the lambda expressions as simple as possible. They are used very frequently.
+-        IntSupplier random = numberOfBlocks == 1 ? (() -> 0) : new IntSupplier() {
++        CoordinatesToIntFunction random = numberOfBlocks == 1 ? ((x, y, z) -> 0) : generateAirPockets ? new CoordinatesToIntFunction() {
+             private int state;
+ 
+             {
+@@ -219,7 +233,27 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+             }
+ 
+             @Override
+-            public int getAsInt() {
++            public int apply(int x, int y, int z) {
++                if (generator.noise((chunkX << 4) + x, y, (chunkZ << 4) + z, 1., 0.8) < 0.) {
++                    return numberOfBlocks - 1;
++                }
++
++                // https://en.wikipedia.org/wiki/Xorshift
++                state ^= state << 13;
++                state ^= state >>> 17;
++                state ^= state << 5;
++                // https://www.pcg-random.org/posts/bounded-rands.html
++                return (int) ((Integer.toUnsignedLong(state) * (numberOfBlocks - 1)) >>> 32);
++            }
++        } : new CoordinatesToIntFunction() {
++            private int state;
++
++            {
++                while ((state = ThreadLocalRandom.current().nextInt()) == 0);
++            }
++
++            @Override
++            public int apply(int x, int y, int z) {
+                 // https://en.wikipedia.org/wiki/Xorshift
+                 state ^= state << 13;
+                 state ^= state >>> 17;
+@@ -267,7 +301,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+ 
+                     // Abuse the obfuscateLayer method to read the blocks of the first layer of the current chunk section
+                     dataBitsWriter.setBitsPerObject(0);
+-                    obfuscateLayer(-1, dataBitsReader, dataBitsWriter, solidTemp, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, emptyNearbyChunkSections, random);
++                    obfuscateLayer(chunkSectionIndex, -1, dataBitsReader, dataBitsWriter, solidTemp, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, emptyNearbyChunkSections, random);
+                 }
+ 
+                 dataBitsWriter.setBitsPerObject(chunkPacketInfoAntiXray.getBitsPerObject(chunkSectionIndex));
+@@ -282,7 +316,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                     current = next;
+                     next = nextNext;
+                     nextNext = temp;
+-                    obfuscateLayer(y, dataBitsReader, dataBitsWriter, solidTemp, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, nearbyChunkSections, random);
++                    obfuscateLayer(chunkSectionIndex, y, dataBitsReader, dataBitsWriter, solidTemp, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, nearbyChunkSections, random);
+                 }
+ 
+                 // Check if the chunk section above doesn't need obfuscation
+@@ -307,7 +341,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                         // There is nothing to read anymore
+                         dataBitsReader.setBitsPerObject(0);
+                         solid[0] = true;
+-                        obfuscateLayer(15, dataBitsReader, dataBitsWriter, solid, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, nearbyChunkSections, random);
++                        obfuscateLayer(chunkSectionIndex, 15, dataBitsReader, dataBitsWriter, solid, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, nearbyChunkSections, random);
+                     }
+                 } else {
+                     // If not, initialize the reader and other stuff for the chunk section above to obfuscate the upper layer of the current chunk section
+@@ -319,7 +353,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                     current = next;
+                     next = nextNext;
+                     nextNext = temp;
+-                    obfuscateLayer(15, dataBitsReader, dataBitsWriter, solidTemp, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, nearbyChunkSections, random);
++                    obfuscateLayer(chunkSectionIndex, 15, dataBitsReader, dataBitsWriter, solidTemp, obfuscateTemp, predefinedBlockDataBitsTemp, current, next, nextNext, nearbyChunkSections, random);
+                 }
+ 
+                 dataBitsWriter.finish();
+@@ -329,7 +363,8 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+         chunkPacketInfoAntiXray.getPacketPlayOutMapChunk().setReady(true);
+     }
+ 
+-    private void obfuscateLayer(int y, DataBitsReader dataBitsReader, DataBitsWriter dataBitsWriter, boolean[] solid, boolean[] obfuscate, int[] predefinedBlockDataBits, boolean[][] current, boolean[][] next, boolean[][] nextNext, ChunkSection[] nearbyChunkSections, IntSupplier random) {
++    private void obfuscateLayer(int chunkSectionIndex, int y, DataBitsReader dataBitsReader, DataBitsWriter dataBitsWriter, boolean[] solid, boolean[] obfuscate, int[] predefinedBlockDataBits, boolean[][] current, boolean[][] next, boolean[][] nextNext, ChunkSection[] nearbyChunkSections, CoordinatesToIntFunction random) {
++        int realY = (chunkSectionIndex << 4) + y;
+         // First block of first line
+         int dataBits = dataBitsReader.read();
+ 
+@@ -341,7 +376,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+             if (nearbyChunkSections[2] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[2].getType(0, y, 15))] || nearbyChunkSections[0] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[0].getType(15, y, 0))] || current[0][0]) {
+                 dataBitsWriter.skip();
+             } else {
+-                dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                dataBitsWriter.write(predefinedBlockDataBits[random.apply(0, realY, 0)]);
+             }
+         }
+ 
+@@ -362,7 +397,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                 if (nearbyChunkSections[2] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[2].getType(x, y, 15))] || current[0][x]) {
+                     dataBitsWriter.skip();
+                 } else {
+-                    dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                    dataBitsWriter.write(predefinedBlockDataBits[random.apply(x, realY, 0)]);
+                 }
+             }
+ 
+@@ -382,7 +417,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+             if (nearbyChunkSections[2] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[2].getType(15, y, 15))] || nearbyChunkSections[1] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[1].getType(0, y, 0))] || current[0][15]) {
+                 dataBitsWriter.skip();
+             } else {
+-                dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                dataBitsWriter.write(predefinedBlockDataBits[random.apply(15, realY, 0)]);
+             }
+         }
+ 
+@@ -404,7 +439,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                 if (nearbyChunkSections[0] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[0].getType(15, y, z))] || current[z][0]) {
+                     dataBitsWriter.skip();
+                 } else {
+-                    dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                    dataBitsWriter.write(predefinedBlockDataBits[random.apply(0, realY, z)]);
+                 }
+             }
+ 
+@@ -426,7 +461,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                     if (current[z][x]) {
+                         dataBitsWriter.skip();
+                     } else {
+-                        dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                        dataBitsWriter.write(predefinedBlockDataBits[random.apply(x, realY, z)]);
+                     }
+                 }
+ 
+@@ -447,7 +482,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                 if (nearbyChunkSections[1] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[1].getType(0, y, z))] || current[z][15]) {
+                     dataBitsWriter.skip();
+                 } else {
+-                    dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                    dataBitsWriter.write(predefinedBlockDataBits[random.apply(15, realY, z)]);
+                 }
+             }
+ 
+@@ -467,7 +502,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+             if (nearbyChunkSections[3] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[3].getType(0, y, 0))] || nearbyChunkSections[0] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[0].getType(15, y, 15))] || current[15][0]) {
+                 dataBitsWriter.skip();
+             } else {
+-                dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                dataBitsWriter.write(predefinedBlockDataBits[random.apply(0, realY, 15)]);
+             }
+         }
+ 
+@@ -488,7 +523,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+                 if (nearbyChunkSections[3] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[3].getType(x, y, 0))] || current[15][x]) {
+                     dataBitsWriter.skip();
+                 } else {
+-                    dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                    dataBitsWriter.write(predefinedBlockDataBits[random.apply(x, realY, 15)]);
+                 }
+             }
+ 
+@@ -508,7 +543,7 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+             if (nearbyChunkSections[3] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[3].getType(15, y, 0))] || nearbyChunkSections[1] == Chunk.EMPTY_CHUNK_SECTION || !solidGlobal[ChunkSection.GLOBAL_PALETTE.getOrCreateIdFor(nearbyChunkSections[1].getType(0, y, 15))] || current[15][15]) {
+                 dataBitsWriter.skip();
+             } else {
+-                dataBitsWriter.write(predefinedBlockDataBits[random.getAsInt()]);
++                dataBitsWriter.write(predefinedBlockDataBits[random.apply(15, realY, 15)]);
+             }
+         }
+ 
+@@ -624,4 +659,8 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
+             return description;
+         }
+     }
++
++    public static interface CoordinatesToIntFunction {
++        int apply(int x, int y, int z);
++    }
+ }
