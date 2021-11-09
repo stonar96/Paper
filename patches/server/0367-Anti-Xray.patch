@@ -255,10 +255,10 @@ index 0000000000000000000000000000000000000000..280ece653cdda74e9c8fab4e9e5b3a95
 +}
 diff --git a/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8a512817c
+index 0000000000000000000000000000000000000000..ecd1039b985b550babcf5031843f2fdef3b5c42c
 --- /dev/null
 +++ b/src/main/java/com/destroystokyo/paper/antixray/ChunkPacketBlockControllerAntiXray.java
-@@ -0,0 +1,635 @@
+@@ -0,0 +1,693 @@
 +package com.destroystokyo.paper.antixray;
 +
 +import com.destroystokyo.paper.PaperWorldConfig;
@@ -493,6 +493,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +
 +        for (int chunkSectionIndex = 0; chunkSectionIndex <= maxChunkSectionIndex; chunkSectionIndex++) {
 +            if (chunkPacketInfoAntiXray.isWritten(chunkSectionIndex) && chunkPacketInfoAntiXray.getPresetValues(chunkSectionIndex) != null) {
++                LevelChunkSection chunkSection = chunk.getSections()[chunkSectionIndex];
 +                int[] presetBlockStateBitsTemp;
 +
 +                if (chunkPacketInfoAntiXray.getPalette(chunkSectionIndex) == LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE) {
@@ -510,8 +511,16 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                    BlockState[] presetBlockStatesFull = chunkPacketInfoAntiXray.getPresetValues(chunkSectionIndex) == presetBlockStates ? this.presetBlockStatesFull : chunkPacketInfoAntiXray.getPresetValues(chunkSectionIndex);
 +                    presetBlockStateBitsTemp = presetBlockStateBits;
 +
-+                    for (int i = 0; i < presetBlockStateBitsTemp.length; i++) {
-+                        presetBlockStateBitsTemp[i] = chunkPacketInfoAntiXray.getPalette(chunkSectionIndex).idFor(presetBlockStatesFull[i]);
++                    synchronized (chunkSection.getStates()) {
++                        try {
++                            chunkSection.acquire();
++
++                            for (int i = 0; i < presetBlockStateBitsTemp.length; i++) {
++                                presetBlockStateBitsTemp[i] = chunkPacketInfoAntiXray.getPalette(chunkSectionIndex).idFor(presetBlockStatesFull[i]);
++                            }
++                        } finally {
++                            chunkSection.release();
++                        }
 +                    }
 +                }
 +
@@ -522,16 +531,31 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                    // If so, initialize some stuff
 +                    bitStorageReader.setBits(chunkPacketInfoAntiXray.getBits(chunkSectionIndex));
 +                    bitStorageReader.setIndex(chunkPacketInfoAntiXray.getIndex(chunkSectionIndex));
-+                    solidTemp = readPalette(chunkPacketInfoAntiXray.getPalette(chunkSectionIndex), solid, solidGlobal);
-+                    obfuscateTemp = readPalette(chunkPacketInfoAntiXray.getPalette(chunkSectionIndex), obfuscate, obfuscateGlobal);
++                    solidTemp = readPalette(chunkSection, chunkPacketInfoAntiXray.getPalette(chunkSectionIndex), solid, solidGlobal);
++                    obfuscateTemp = readPalette(chunkSection, chunkPacketInfoAntiXray.getPalette(chunkSectionIndex), obfuscate, obfuscateGlobal);
 +                    // Read the blocks of the upper layer of the chunk section below if it exists
 +                    LevelChunkSection belowChunkSection = null;
-+                    boolean skipFirstLayer = chunkSectionIndex == 0 || (belowChunkSection = chunk.getSections()[chunkSectionIndex - 1]) == LevelChunk.EMPTY_SECTION;
 +
-+                    for (int z = 0; z < 16; z++) {
-+                        for (int x = 0; x < 16; x++) {
-+                            current[z][x] = true;
-+                            next[z][x] = skipFirstLayer || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(belowChunkSection.getBlockState(x, 15, z))];
++                    if (chunkSectionIndex != 0 && (belowChunkSection = chunk.getSections()[chunkSectionIndex - 1]) != LevelChunk.EMPTY_SECTION) {
++                        synchronized (belowChunkSection.getStates()) {
++                            try {
++                                belowChunkSection.acquire();
++                                for (int z = 0; z < 16; z++) {
++                                    for (int x = 0; x < 16; x++) {
++                                        current[z][x] = true;
++                                        next[z][x] = !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(belowChunkSection.getBlockState(x, 15, z))];
++                                    }
++                                }
++                            } finally {
++                                belowChunkSection.release();
++                            }
++                        }
++                    } else {
++                        for (int z = 0; z < 16; z++) {
++                            for (int x = 0; x < 16; x++) {
++                                current[z][x] = true;
++                                next[z][x] = true;
++                            }
 +                        }
 +                    }
 +
@@ -566,11 +590,18 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                        next = nextNext;
 +                        nextNext = temp;
 +
-+                        for (int z = 0; z < 16; z++) {
-+                            for (int x = 0; x < 16; x++) {
-+                                if (!solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(aboveChunkSection.getBlockState(x, 0, z))]) {
-+                                    current[z][x] = true;
++                        synchronized (aboveChunkSection.getStates()) {
++                            try {
++                                aboveChunkSection.acquire();
++                                for (int z = 0; z < 16; z++) {
++                                    for (int x = 0; x < 16; x++) {
++                                        if (!solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(aboveChunkSection.getBlockState(x, 0, z))]) {
++                                            current[z][x] = true;
++                                        }
++                                    }
 +                                }
++                            } finally {
++                                aboveChunkSection.release();
 +                            }
 +                        }
 +
@@ -583,8 +614,8 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                    // If not, initialize the reader and other stuff for the chunk section above to obfuscate the upper layer of the current chunk section
 +                    bitStorageReader.setBits(chunkPacketInfoAntiXray.getBits(chunkSectionIndex + 1));
 +                    bitStorageReader.setIndex(chunkPacketInfoAntiXray.getIndex(chunkSectionIndex + 1));
-+                    solidTemp = readPalette(chunkPacketInfoAntiXray.getPalette(chunkSectionIndex + 1), solid, solidGlobal);
-+                    obfuscateTemp = readPalette(chunkPacketInfoAntiXray.getPalette(chunkSectionIndex + 1), obfuscate, obfuscateGlobal);
++                    solidTemp = readPalette(chunkSection, chunkPacketInfoAntiXray.getPalette(chunkSectionIndex + 1), solid, solidGlobal);
++                    obfuscateTemp = readPalette(chunkSection, chunkPacketInfoAntiXray.getPalette(chunkSectionIndex + 1), obfuscate, obfuscateGlobal);
 +                    boolean[][] temp = current;
 +                    current = next;
 +                    next = nextNext;
@@ -608,7 +639,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +            next[0][1] = true;
 +            next[1][0] = true;
 +        } else {
-+            if (current[0][0] || nearbyChunkSections[2] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[2].getBlockState(0, y, 15))] || nearbyChunkSections[0] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[0].getBlockState(15, y, 0))]) {
++            if (current[0][0] || isTransparent(nearbyChunkSections[2], 0, y, 15) || isTransparent(nearbyChunkSections[0], 15, y, 0)) {
 +                bitStorageWriter.skip();
 +            } else {
 +                bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -629,7 +660,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                next[0][x + 1] = true;
 +                next[1][x] = true;
 +            } else {
-+                if (current[0][x] || nearbyChunkSections[2] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[2].getBlockState(x, y, 15))]) {
++                if (current[0][x] || isTransparent(nearbyChunkSections[2], x, y, 15)) {
 +                    bitStorageWriter.skip();
 +                } else {
 +                    bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -649,7 +680,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +            next[0][14] = true;
 +            next[1][15] = true;
 +        } else {
-+            if (current[0][15] || nearbyChunkSections[2] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[2].getBlockState(15, y, 15))] || nearbyChunkSections[1] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[1].getBlockState(0, y, 0))]) {
++            if (current[0][15] || isTransparent(nearbyChunkSections[2], 15, y, 15) || isTransparent(nearbyChunkSections[1], 0, y, 0)) {
 +                bitStorageWriter.skip();
 +            } else {
 +                bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -671,7 +702,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                next[z - 1][0] = true;
 +                next[z + 1][0] = true;
 +            } else {
-+                if (current[z][0] || nearbyChunkSections[0] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[0].getBlockState(15, y, z))]) {
++                if (current[z][0] || isTransparent(nearbyChunkSections[0], 15, y, z)) {
 +                    bitStorageWriter.skip();
 +                } else {
 +                    bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -714,7 +745,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                next[z - 1][15] = true;
 +                next[z + 1][15] = true;
 +            } else {
-+                if (current[z][15] || nearbyChunkSections[1] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[1].getBlockState(0, y, z))]) {
++                if (current[z][15] || isTransparent(nearbyChunkSections[1], 0, y, z)) {
 +                    bitStorageWriter.skip();
 +                } else {
 +                    bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -734,7 +765,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +            next[15][1] = true;
 +            next[14][0] = true;
 +        } else {
-+            if (current[15][0] || nearbyChunkSections[3] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[3].getBlockState(0, y, 0))] || nearbyChunkSections[0] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[0].getBlockState(15, y, 15))]) {
++            if (current[15][0] || isTransparent(nearbyChunkSections[3], 0, y, 0) || isTransparent(nearbyChunkSections[0], 15, y, 15)) {
 +                bitStorageWriter.skip();
 +            } else {
 +                bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -755,7 +786,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +                next[15][x + 1] = true;
 +                next[14][x] = true;
 +            } else {
-+                if (current[15][x] || nearbyChunkSections[3] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[3].getBlockState(x, y, 0))]) {
++                if (current[15][x] || isTransparent(nearbyChunkSections[3], x, y, 0)) {
 +                    bitStorageWriter.skip();
 +                } else {
 +                    bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -775,7 +806,7 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +            next[15][14] = true;
 +            next[14][15] = true;
 +        } else {
-+            if (current[15][15] || nearbyChunkSections[3] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[3].getBlockState(15, y, 0))] || nearbyChunkSections[1] == LevelChunk.EMPTY_SECTION || !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(nearbyChunkSections[1].getBlockState(0, y, 15))]) {
++            if (current[15][15] || isTransparent(nearbyChunkSections[3], 15, y, 0) || isTransparent(nearbyChunkSections[1], 0, y, 15)) {
 +                bitStorageWriter.skip();
 +            } else {
 +                bitStorageWriter.write(presetBlockStateBits[random.getAsInt()]);
@@ -787,15 +818,42 @@ index 0000000000000000000000000000000000000000..58052a5f773b5882acd90bc0214a36e8
 +        }
 +    }
 +
-+    private boolean[] readPalette(Palette<BlockState> palette, boolean[] temp, boolean[] global) {
++    private boolean isTransparent(LevelChunkSection chunkSection, int x, int y, int z) {
++        if (chunkSection == LevelChunk.EMPTY_SECTION) {
++            return true;
++        }
++
++        BlockState blockState;
++
++        synchronized (chunkSection.getStates()) {
++            try {
++                chunkSection.acquire();
++                blockState = chunkSection.getBlockState(x, y, z);
++            } finally {
++                chunkSection.release();
++            }
++        }
++
++        return !solidGlobal[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(blockState)];
++    }
++
++    private boolean[] readPalette(LevelChunkSection chunkSection, Palette<BlockState> palette, boolean[] temp, boolean[] global) {
 +        if (palette == LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE) {
 +            return global;
 +        }
 +
 +        BlockState blockState;
 +
-+        for (int i = 0; (blockState = palette.valueFor(i)) != null; i++) {
-+            temp[i] = global[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(blockState)];
++        synchronized (chunkSection.getStates()) {
++            try {
++                chunkSection.acquire();
++
++                for (int i = 0; (blockState = palette.valueFor(i)) != null; i++) {
++                    temp[i] = global[LevelChunkSection.GLOBAL_BLOCKSTATE_PALETTE.idFor(blockState)];
++                }
++            } finally {
++                chunkSection.release();
++            }
 +        }
 +
 +        return temp;
@@ -1104,7 +1162,7 @@ index 2e17c387ca132c5ec7312a4f008d93d2bc8f2138..85a3ccce473604561b5550b2b2b1f4aa
          }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 8a1df5b26a6ba0e2fa13a9974cf41384a8e6d4fe..0df81cbddf2e7f164861b95cf572f9d6d3f031ca 100644
+index 4c45110320004eb1c6f8c73d5c67880110e6ef08..ab765346be908a5b13239ec087348bd605b16d1b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -378,7 +378,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
